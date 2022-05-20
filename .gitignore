@@ -1,5 +1,5 @@
 .ipynb_checkpoints
 __pycache__/
-arogya_content/
-local_storage/
+**/arogya_content
+**/local_storage
 img/
