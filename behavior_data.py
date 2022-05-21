@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-from src.state_data import StateData
+from state_data import StateData
 
 # class to manage loading and encoding behavioral data
 class BehaviorData:

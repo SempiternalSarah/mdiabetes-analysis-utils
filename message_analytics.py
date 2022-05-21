@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import sys
-from src.content import MessageHandler
-from src.replay import ReplayDB
+from content import MessageHandler
+from replay import ReplayDB
 import numpy as np
 
 path_pre = ""
