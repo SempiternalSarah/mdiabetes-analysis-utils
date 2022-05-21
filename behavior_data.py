@@ -89,8 +89,7 @@ class BehaviorData:
                 bin_feat = _padded_binary(feats_to_enc[j][k],ls[j])
                 X = np.append(X, bin_feat)
         # encode the responses
-        Y = row["response"]
-        Y = [_padded_binary(y,3) for y in Y]
+        Y = np.array(row["response"])
         Y = np.concatenate(Y)
         return X, Y
     
