@@ -88,9 +88,8 @@ class BehaviorData:
                 # encode the feature and add it to our feat vector
                 bin_feat = _padded_binary(feats_to_enc[j][k],ls[j])
                 X = np.append(X, bin_feat)
-        # encode the responses
+        # responses are the labels
         Y = np.array(row["response"])
-        Y = np.concatenate(Y)
         return X, Y
     
     def build(self):
