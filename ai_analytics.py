@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from replay import ReplayDB
+from utils.replay import ReplayDB
 
 # helper functions to load ai training data from each week
 

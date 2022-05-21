@@ -3,8 +3,8 @@ import sys
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OrdinalEncoder
-from content import MessageHandler, QuestionHandler
-from replay import ReplayDB
+from utils.content import MessageHandler, QuestionHandler
+from utils.replay import ReplayDB
 
 class StateData:
     

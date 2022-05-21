@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import sys
-from content import MessageHandler
-from replay import ReplayDB
 import numpy as np
+from utils.content import MessageHandler
+from utils.replay import ReplayDB
 
 path_pre = ""
 MsgH = MessageHandler(path_prepend=path_pre)
