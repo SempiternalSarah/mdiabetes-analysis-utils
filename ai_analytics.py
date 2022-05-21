@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.replay import ReplayDB
 
+# helper functions to load ai training data from each week
+
 def AIAnalytics(w):
     rep = ReplayDB().week(w)
     cluster = rep.replay("clusters").load()
@@ -9,6 +11,7 @@ def AIAnalytics(w):
     return (cluster, debug)
     
 def plot_loss(w):
+    # plot a line graph of the loss curve for one week
     cluster, debug = AIAnalytics(w)
     fig, ax = plt.subplots(figsize=(6,4))
     for i, l in enumerate(debug['loss']):
@@ -16,6 +19,8 @@ def plot_loss(w):
     ax.set_title(f"Loss week {w}")
     
 def plot_cluster_counts(w):
+    # plot the total number of members in the cluster 
+    # against the number of transitions/responses collected from each
     cluster, debug = AIAnalytics(w)
     c = np.unique(cluster, return_counts=True)
     c_counts = {c[0][i]: c[1][i] for i in range(c[0].size)}
