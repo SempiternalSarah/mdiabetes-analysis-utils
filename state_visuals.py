@@ -1,6 +1,9 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from utils.state_data import StateData
+
+sd = StateData()
 
 elem_map = {
     1: "Healthy Food Intake",
@@ -142,14 +145,14 @@ def plot_response_counts(data, title="Response Counts", sample=1):
     ax[1].set_title("Histogram for all Participants")
     ax[1].set_xlabel("# Responses")
     ax[1].set_ylabel("# Participants")
-    cx, cy = [], []
+    cx, cy, ly = [], [], []
     for m in range(np.max([c.shape[0] for c in rc['counts']])):
         cx.append(m+1)
         cym = 0
         for c in rc['counts']:
             if len(c) > m and np.all(c > 0):
                 cym += 1
-        cy.append(cym)
+        cy.append(cym/len(rc['counts']))
     ax[2].bar(cx, cy)
     ax[2].set_title("Consistent Responders by Opt-In Time")
     ax[2].set_xlabel("Weeks Since Opt-In")
@@ -173,6 +176,6 @@ def _plot_active_participants(data, sample=1, title_add=""):
 def plot_active_participants(data, samp):
     plot_response_counts(data, title="Breakdown of Response Counts For all Participants")
     for _samp in samp:
-        _plot_active_participants(apid, _samp)
+        _plot_active_participants(data, _samp)
         print(_samp)
         
