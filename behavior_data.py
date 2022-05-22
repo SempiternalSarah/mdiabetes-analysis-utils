@@ -1,32 +1,37 @@
 import numpy as np
+import pandas as pd
 import os
+from sklearn.preprocessing import OrdinalEncoder
 import matplotlib.pyplot as plt
 from utils.state_data import StateData
 
 # class to manage loading and encoding behavioral data
 class BehaviorData:
     
-    def __init__(self, minw=2, maxw=8, include_pid=True, include_state=True):
+    def __init__(self, minw=2, maxw=8, include_pid=True, include_state=True, active_samp=.1):
         # minw, maxw: min and max weeks to collect behavior from
         # include_pid: should the participant id be a feature to the model
         # include_state: should the participant state be a feature
         self.minw, self.maxw = minw, maxw
         self.include_pid = include_pid
         self.include_state = include_state
+        self.active_samp = active_samp if active_samp is not None else 1
         self.data = self.build()
         
     @property
     def dimensions(self):
         # helper to get the x and y input dimensions
-        x, y = self._encode_row(self.data, self.data.index[0])
+        x, y = self.encode_row(self.data, self.data.index[0])
         return x.shape[0], y.shape[0]
-        
-    def iterate_training(self):
-        # for each subject, for each series, yield the series
-        # a series is a slice of their behavior from [x-t:x+t],[y-t:y+t]
-        for subj in self.iterate_subjects():
-            for ser in self.iterate_subject_series(subj):
-                yield self.encode(subj, ser)
+    
+    def train_iter(self, n_subj=-1, n_ser=-1):
+        for (i_subj, subj) in enumerate(self.iterate_subjects()):
+            if n_subj >= 0 and i_subj >= n_subj:
+                break
+            for (i_ser, ser) in enumerate(self.iterate_subject_series(subj)):
+                if n_ser >= 0 and i_ser >= n_ser:
+                    break
+                yield self.encode(subj, ser)  
         
     def iterate_subjects(self):
         # find the unique participants and yield their subset
@@ -50,13 +55,13 @@ class BehaviorData:
         # rows: list or pd.Series of indexed to loc
         X, Y = [], []
         for i, row in enumerate(rows):
-            x, y = self._encode_row(data, row)
+            x, y = self.encode_row(data, row)
             X.append(x)
             Y.append(y)
         X, Y = np.stack(X), np.stack(Y)
         return X, Y
                 
-    def _encode_row(self, data, rowloc):
+    def encode_row(self, data, rowloc):
         # here we take a row from the main behavior dataset and 
         # encode all of the features for our model
         # Features:
@@ -95,6 +100,11 @@ class BehaviorData:
     def build(self):
         # call StateData and build our initial unencoded dataset
         sd = StateData()
-        self.data = sd.build(self.minw, self.maxw, encode_ids=True)
-        self.data = self.data.sort_values(by="pid")
-        return self.data.copy()
+        d = sd.buildby("pid", minw=self.minw, maxw=self.maxw)
+        ids = sd.active_responders(
+            self.active_samp, sd.analyze(d))["ids"]
+        d = pd.concat([d[i] for i in ids])
+        enc = OrdinalEncoder().fit_transform
+        d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
+        return d
+        

@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import sys
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import OrdinalEncoder
 from utils.content import MessageHandler, QuestionHandler
 from utils.replay import ReplayDB
 
@@ -28,7 +27,7 @@ class StateData:
             out[v] = sub
         return out
     
-    def build(self, minw=4, maxw=7, **kw):
+    def build(self, minw=4, maxw=7):
         # {pid: [[week_idx, state, action], ...], ...}
         data = []
         cols = ["week", "pid", "state", "cluster", "action_sids", \
@@ -50,6 +49,7 @@ class StateData:
                     for j in range(len(resp)):
                         if pd.isna(resp[j]):
                             resp[j] = 0
+                        resp[j] = int(resp[j])
                 except:
                     resp = [-1,-1]
                 row = [w, pid, st, clt, actsids[i], msg_ids[i], pactsids[i], \
@@ -57,9 +57,6 @@ class StateData:
                 data.append(row)
         data = pd.DataFrame(data, columns=cols)
         data = data.sort_values(by="week", ascending=True)
-        if kw.get("encode_ids", False):
-                enc = OrdinalEncoder().fit_transform
-                data["pid"] = enc(data["pid"].values.reshape(-1,1)).astype(int)
         return data
     
     def weekly_state_data(self, w):
