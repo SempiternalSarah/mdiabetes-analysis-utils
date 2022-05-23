@@ -4,50 +4,62 @@ import os
 from sklearn.preprocessing import OrdinalEncoder
 import matplotlib.pyplot as plt
 from utils.state_data import StateData
+from torch import save, load
 
 # class to manage loading and encoding behavioral data
 class BehaviorData:
     
-    def __init__(self, minw=2, maxw=8, include_pid=True, include_state=True, active_samp=.1):
+    def __init__(self, minw=2, maxw=8, include_pid=True, include_state=True, active_samp=.1, load=None):
         # minw, maxw: min and max weeks to collect behavior from
         # include_pid: should the participant id be a feature to the model
         # include_state: should the participant state be a feature
+        if load is not None:
+            self.load(load)
+            return
         self.minw, self.maxw = minw, maxw
         self.include_pid = include_pid
         self.include_state = include_state
         self.active_samp = active_samp if active_samp is not None else 1
         self.data = self.build()
         
-    @property
-    def dimensions(self):
-        # helper to get the x and y input dimensions
-        x, y = self.encode_row(self.data, self.data.index[0])
-        return x.shape[0], y.shape[0]
+    def build(self):
+        # call StateData and build our initial unencoded dataset
+        sd = StateData()
+        d = sd.buildby("pid", minw=self.minw, maxw=self.maxw)
+        ids = sd.active_responders(
+            self.active_samp, sd.analyze(d))["ids"]
+        d = pd.concat([d[i] for i in ids])
+        enc = OrdinalEncoder().fit_transform
+        d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
+        return d
     
-    def train_iter(self, n_subj=-1, n_ser=-1):
-        for (i_subj, subj) in enumerate(self.iterate_subjects()):
-            if n_subj >= 0 and i_subj >= n_subj:
-                break
-            for (i_ser, ser) in enumerate(self.iterate_subject_series(subj)):
-                if n_ser >= 0 and i_ser >= n_ser:
-                    break
-                yield self.encode(subj, ser)  
+    def train_iter(self, n_subj=None, n_ser=None):
+        for (i_subj, subj) in enumerate(self.iterate_subjects(n_subj=n_subj)):
+            for (i_ser, ser) in enumerate(self.iterate_series(subj, n_ser=n_ser)):
+                yield ser
+                # yield self.encode(subj, ser) 
         
-    def iterate_subjects(self):
+    def iterate_subjects(self, n_subj=None):
         # find the unique participants and yield their subset
         # of data sorted by week
-        for pid in self.data["pid"].unique():
+        for i_subj, pid in enumerate(self.data["pid"].unique()):
+            if n_subj is not None and i_subj >= n_subj:
+                break
             dpid = self.data[self.data["pid"] == pid]
             dpid = dpid.sort_values(by="week")
             yield dpid
             
-    def iterate_subject_series(self, subj, window=3):
+    def iterate_series(self, subj=None, window=3, n_ser=None):
         # step over the whole behavior of a subject and yield
         # the series of size window
+        if subj is None:
+            subj = self.data.sample(frac=1)
         idx = subj.index
-        for i in range(idx.shape[0]-window+1):
+        for i_ser, i in enumerate(range(idx.shape[0]-window+1)):
+            if n_ser is not None and i_ser >= n_ser:
+                break
             ser_idx = idx[i:i+window]
-            yield ser_idx
+            yield self.encode(subj, ser_idx)
         
     def encode(self, data, rows):
         # encode the row locations of data
@@ -77,6 +89,10 @@ class BehaviorData:
             l = len(format(b,"b"))
             a = format(a,f"0{l}b")
             return np.array([int(_) for _ in a])
+        def _onehot(a, l):
+            vec = np.zeros(l)
+            vec[a] = 1
+            return vec
         row = data.loc[rowloc]
         feats_to_enc = np.array(row[["paction_sids", "pmsg_ids", "qids"]].values)
         feats_to_enc = feats_to_enc.tolist()
@@ -94,17 +110,29 @@ class BehaviorData:
                 bin_feat = _padded_binary(feats_to_enc[j][k],ls[j])
                 X = np.append(X, bin_feat)
         # responses are the labels
-        Y = np.array(row["response"])
+        Y = np.array([])
+        for r in row["response"]:
+            Y = np.append(Y, _onehot(r,4))
+        # Y = np.array(row["response"])
         return X, Y
     
-    def build(self):
-        # call StateData and build our initial unencoded dataset
-        sd = StateData()
-        d = sd.buildby("pid", minw=self.minw, maxw=self.maxw)
-        ids = sd.active_responders(
-            self.active_samp, sd.analyze(d))["ids"]
-        d = pd.concat([d[i] for i in ids])
-        enc = OrdinalEncoder().fit_transform
-        d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
-        return d
+    def save(self, p):
+        out = {"minw": self.minw, "maxw": self.maxw, "include_pid": self.include_pid,
+               "include_state": self.include_state, "active_samp": self.active_samp,
+               "data": self.data}
+        save(out, p)
+        
+    def load(self, p):
+        d = load(p)
+        self.minw, self.maxw = d["minw"], d["maxw"]
+        self.include_pid = d["include_pid"]
+        self.include_state = d["include_state"]
+        self.active_samp = d["active_samp"]
+        self.data = d["data"]
+        
+    @property
+    def dimensions(self):
+        # helper to get the x and y input dimensions
+        x, y = self.encode_row(self.data, self.data.index[0])
+        return x.shape[0], y.shape[0]
         
