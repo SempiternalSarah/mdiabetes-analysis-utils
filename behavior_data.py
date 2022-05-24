@@ -37,7 +37,6 @@ class BehaviorData:
         for (i_subj, subj) in enumerate(self.iterate_subjects(n_subj=n_subj)):
             for (i_ser, ser) in enumerate(self.iterate_series(subj, n_ser=n_ser)):
                 yield ser
-                # yield self.encode(subj, ser) 
         
     def iterate_subjects(self, n_subj=None):
         # find the unique participants and yield their subset
