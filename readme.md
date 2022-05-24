@@ -2,7 +2,7 @@
 This git repo stores the code for handling the mdiabetes AI-experiment
 data for analyzing message transmission, response rates, and participant behavior
 
-# to use these utils
+## to use these utils
 1) create your analytics directory, for example: `/home> mkdir myanalytics && cd myanalytics` 
 2) in your directory clone the repo as `utils`: `/home/myanalytics> gh repo clone skippyelvis/mdiabetes-analysis-utils utils`
 3) create symlink to arogya_content folder: `/home/myanalytics> ln -s /home/users/jwolf5/mdiabetes/PROD/arogya_content .`
