@@ -7,7 +7,7 @@ import os
 from collections import OrderedDict
 
 class MessageHandler:
-    # handle action space/messages
+    # handle action space/messages and organizing by state element
 
     def __init__(self, path='arogya_content/mDiabetes-content-final.xlsx',
             core_timeline_path='arogya_content/core_message_timeline_map.csv',
