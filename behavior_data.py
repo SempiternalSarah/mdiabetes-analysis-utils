@@ -38,11 +38,6 @@ class BehaviorData:
         enc = OrdinalEncoder().fit_transform
         d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
         return d
-    
-    def train_iter(self, n_subj=None, n_ser=None):
-        for (i_subj, subj) in enumerate(self.iterate_subjects(n_subj=n_subj)):
-            for (i_ser, ser) in enumerate(self.iterate_series(subj, n_ser=n_ser)):
-                yield ser
         
     def iterate_subjects(self, n_subj=None):
         # find the unique participants and yield their subset
@@ -54,18 +49,8 @@ class BehaviorData:
             dpid = dpid.sort_values(by="week")
             yield dpid
             
-    def iterate_series(self, subj=None, n_ser=None):
-        # step over the whole behavior of a subject and yield
-        # the series of size window
-        window = self.window
-        if subj is None:
-            subj = self.data.sample(frac=1)
-        idx = subj.index
-        for i_ser, i in enumerate(range(idx.shape[0]-window+1)):
-            if n_ser is not None and i_ser >= n_ser:
-                break
-            ser_idx = idx[i:i+window]
-            yield self.encode(subj, ser_idx)
+    def subject_series(self, subj):
+        return self.encode(subj, subj.index)
         
     def encode(self, data, rows):
         # encode the row locations of data
