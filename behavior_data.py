@@ -33,10 +33,10 @@ class BehaviorData:
         d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
         return d
     
-    def train_iter(self, n_subj=None, n_ser=None):
+    def train_iter(self, n_subj=None, n_ser=None, transform=lambda x: x):
         for (i_subj, subj) in enumerate(self.iterate_subjects(n_subj=n_subj)):
             for (i_ser, ser) in enumerate(self.iterate_series(subj, n_ser=n_ser)):
-                yield ser
+                yield transform(ser)
         
     def iterate_subjects(self, n_subj=None):
         # find the unique participants and yield their subset
