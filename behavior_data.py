@@ -132,5 +132,5 @@ class BehaviorData:
     def dimensions(self):
         # helper to get the x and y input dimensions
         x, y = self.encode_row(self.data, self.data.index[0])
-        return x.shape[0], y[0].shape[0]
+        return x.shape[0], y.shape[0]
         
