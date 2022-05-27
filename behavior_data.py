@@ -124,7 +124,7 @@ class BehaviorData:
     def save(self, p):
         out = {"minw": self.minw, "maxw": self.maxw, "include_pid": self.include_pid,
                "include_state": self.include_state, "active_samp": self.active_samp,
-               "data": self.data}
+               "window": self.window, "data": self.data}
         save(out, p)
         
     def load(self, p):
@@ -133,6 +133,7 @@ class BehaviorData:
         self.include_pid = d["include_pid"]
         self.include_state = d["include_state"]
         self.active_samp = d["active_samp"]
+        self.window = d["window"]
         self.data = d["data"]
         
     @property
