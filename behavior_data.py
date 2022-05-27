@@ -40,7 +40,7 @@ class BehaviorData:
         return d
     
     def iterate(self, n_subj=None):
-        for subj in self.iterate(n_subj):
+        for subj in self.iterate_subjects(n_subj):
             yield self.subject_series(subj)
         
     def iterate_subjects(self, n_subj=None):
