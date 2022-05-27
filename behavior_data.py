@@ -109,9 +109,9 @@ class BehaviorData:
                 bin_feat = _padded_binary(feats_to_enc[j][k],ls[j])
                 X = np.append(X, bin_feat)
         # responses are the labels
-        Y = np.array([])
-        for r in row["response"]:
-            Y = np.append(Y, _onehot(r,4))
+        Y = []
+        for i,r in enumerate(row["response"]):
+            Y.append(_onehot(r,4))
         # Y = np.array(row["response"])
         return X, Y
     
@@ -133,5 +133,5 @@ class BehaviorData:
     def dimensions(self):
         # helper to get the x and y input dimensions
         x, y = self.encode_row(self.data, self.data.index[0])
-        return x.shape[0], y.shape[0]
+        return x.shape[0], y[0].shape[0]
         
