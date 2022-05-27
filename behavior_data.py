@@ -38,6 +38,10 @@ class BehaviorData:
         enc = OrdinalEncoder().fit_transform
         d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
         return d
+    
+    def iterate(self, n_subj=None):
+        for subj in self.iterate(n_subj):
+            yield self.subject_series(subj)
         
     def iterate_subjects(self, n_subj=None):
         # find the unique participants and yield their subset
