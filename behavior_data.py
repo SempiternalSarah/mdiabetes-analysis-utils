@@ -9,7 +9,12 @@ from torch import save, load
 # class to manage loading and encoding behavioral data
 class BehaviorData:
     
-    def __init__(self, minw=2, maxw=8, include_pid=True, include_state=True, active_samp=.1, load=None):
+    def __init__(self, 
+                 minw=2, maxw=8, 
+                 include_pid=True, include_state=True, 
+                 active_samp=.1, 
+                 window=3,
+                 load=None):
         # minw, maxw: min and max weeks to collect behavior from
         # include_pid: should the participant id be a feature to the model
         # include_state: should the participant state be a feature
@@ -20,6 +25,7 @@ class BehaviorData:
         self.include_pid = include_pid
         self.include_state = include_state
         self.active_samp = active_samp if active_samp is not None else 1
+        self.window = window
         self.data = self.build()
         
     def build(self):
@@ -48,9 +54,10 @@ class BehaviorData:
             dpid = dpid.sort_values(by="week")
             yield dpid
             
-    def iterate_series(self, subj=None, window=3, n_ser=None):
+    def iterate_series(self, subj=None, n_ser=None):
         # step over the whole behavior of a subject and yield
         # the series of size window
+        window = self.window
         if subj is None:
             subj = self.data.sample(frac=1)
         idx = subj.index
