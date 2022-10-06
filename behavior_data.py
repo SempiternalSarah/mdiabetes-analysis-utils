@@ -5,6 +5,7 @@ from sklearn.preprocessing import OrdinalEncoder
 import matplotlib.pyplot as plt
 from utils.state_data import StateData
 from torch import save, load
+import torch
 
 # class to manage loading and encoding behavioral data
 class BehaviorData:
@@ -12,9 +13,11 @@ class BehaviorData:
     def __init__(self, 
                  minw=2, maxw=8, 
                  include_pid=True, include_state=True, 
-                 active_samp=.1, 
+                 active_samp=None, 
                  window=3,
-                 load=None):
+                 load=None,
+                 train_perc=.8,
+                 remove_no_response=True):
         # minw, maxw: min and max weeks to collect behavior from
         # include_pid: should the participant id be a feature to the model
         # include_state: should the participant state be a feature
@@ -26,49 +29,53 @@ class BehaviorData:
         self.include_state = include_state
         self.active_samp = active_samp if active_samp is not None else 1
         self.window = window
-        self.data = self.build()
+        self.data = self.build(remove_no_response)
+        self.features, self.labels = self.encode(self.data)
+        self.splitData(train_perc)
         
-    def build(self):
+    # splits data into test and training
+    def splitData(self, train_perc):
+        numParticipants = len(self.nzindices)
+        numTrainParticipants = int(train_perc * numParticipants)
+        self.train = np.random.choice(numParticipants, numTrainParticipants)
+        self.test = [idx for idx in range(numParticipants) if idx not in self.train]
+    
+        self.chunkedFeatures = torch.tensor_split(self.features, self.nzindices)
+        self.chunkedLabels = torch.tensor_split(self.labels, self.nzindices)
+        
+    def build(self, remove_no_response):
         # call StateData and build our initial unencoded dataset
         sd = StateData()
-        d = sd.buildby("pid", minw=self.minw, maxw=self.maxw)
-        ids = sd.active_responders(
-            self.active_samp, sd.analyze(d))["ids"]
-        d = pd.concat([d[i] for i in ids])
+        d = sd.build(minw=self.minw, maxw=self.maxw)
         enc = OrdinalEncoder().fit_transform
         d["pid"] = enc(d["pid"].values.reshape(-1,1)).astype(int)
+        d = d.sort_values(by="week")
+        d = d.sort_values(by="pid", kind="stable")
+        # filter out nonresponse rows
+        if (remove_no_response):
+            d = d[d["response"].apply(lambda x: np.sum(x) > 0)]
+        # record splits between different participants for later
+        # indices will REMAIN THE SAME for the encoded pytorch tensor
+        # nonzero() returns a 1 element tuple, unpack, take 0th entry off (it's 0)
+        # convert to tensor for later use
+        self.nzindices = d["pid"].diff().to_numpy().nonzero()[0][1:].tolist()
+        # print(self.nzindices)
+        # print(d.shape)
         return d
     
-    def iterate(self, n_subj=None):
-        for subj in self.iterate_subjects(n_subj):
-            yield self.subject_series(subj)
-        
-    def iterate_subjects(self, n_subj=None):
-        # find the unique participants and yield their subset
-        # of data sorted by week
-        for i_subj, pid in enumerate(self.data["pid"].unique()):
-            if n_subj is not None and i_subj >= n_subj:
-                break
-            dpid = self.data[self.data["pid"] == pid]
-            dpid = dpid.sort_values(by="week")
-            yield dpid
-            
-    def subject_series(self, subj):
-        return self.encode(subj, subj.index)
-        
-    def encode(self, data, rows):
+    def encode(self, data):
         # encode the row locations of data
         # data: pd.DataFrame
-        # rows: list or pd.Series of indexed to loc
         X, Y = [], []
-        for i, row in enumerate(rows):
-            x, y = self.encode_row(data, row)
+        for idx, row in data.iterrows():
+            x, y = self.encode_row(row)
             X.append(x)
             Y.append(y)
         X, Y = np.stack(X), np.stack(Y)
-        return X, Y
+        print(X.shape, Y.shape)
+        return torch.tensor(X).float(), torch.tensor(Y).float()
                 
-    def encode_row(self, data, rowloc):
+    def encode_row(self, row):
         # here we take a row from the main behavior dataset and 
         # encode all of the features for our model
         # Features:
@@ -88,7 +95,6 @@ class BehaviorData:
             vec = np.zeros(l)
             vec[a] = 1
             return vec
-        row = data.loc[rowloc]
         feats_to_enc = np.array(row[["paction_sids", "pmsg_ids", "qids"]].values)
         feats_to_enc = feats_to_enc.tolist()
         if self.include_pid:
@@ -128,6 +134,5 @@ class BehaviorData:
     @property
     def dimensions(self):
         # helper to get the x and y input dimensions
-        x, y = self.encode_row(self.data, self.data.index[0])
-        return x.shape[0], y.shape[0]
+        return self.features.shape[1], self.labels.shape[1]
         

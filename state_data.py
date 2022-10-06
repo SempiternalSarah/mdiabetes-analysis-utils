@@ -131,6 +131,7 @@ class StateData:
         # find top samp% of responders
     def active_responders(self, _samp, data):
         responders = self.rank_by(data, "response_count", np.sum).index
+        print(responders.shape[0])
         samp = int(responders.shape[0] * _samp)
         m = data.iloc[0]['running_change'].shape[1]
         responders_sample = responders[:samp]
